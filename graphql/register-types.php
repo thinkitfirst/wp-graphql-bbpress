@@ -119,9 +119,6 @@ add_action('graphql_register_types', function () {
             'content' => [
                 'type' => 'String',
                 'description' => 'The content of the topic.',
-                'resolve' => function ($topic) {
-                    return bbp_get_topic_content($topic['id']);
-                },
             ],
             'replies' => [
                 'type' => ['list_of' => 'Reply'],
