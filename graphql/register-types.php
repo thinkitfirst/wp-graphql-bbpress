@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/resolvers/forums-resolver.php';
+require_once __DIR__ . '/resolvers/topics-resolver.php';
 
 add_action('graphql_register_types', function () {
     register_graphql_object_type('Forum', [
