@@ -60,8 +60,9 @@ function resolve_topic($id) {
                 'id' => $reply_id,
                 'content' => bbp_get_reply_content($reply_id),
                 'author' => bbp_get_reply_author_link($reply_id),
-                'createdAt' => get_the_date('', $reply_id),
+                'createdAt' => bbp_get_reply_post_date($reply_id),
                 'authorRole' => bbp_get_reply_author_role($reply_id),
+                'replyToId' => bbp_get_reply_to($reply_id),
             ];
         }
         wp_reset_postdata();
@@ -71,6 +72,9 @@ function resolve_topic($id) {
         'id' => bbp_get_topic_id($id),
         'title' => bbp_get_topic_title($id),
         'content' => bbp_get_topic_content($id),
+        'author' => bbp_get_topic_author_link($id),
+        'authorRole' => bbp_get_topic_author_role($id),
+        'createdAt' => bbp_get_reply_post_date($id),
         'replies' => $replies,
     ];
 }

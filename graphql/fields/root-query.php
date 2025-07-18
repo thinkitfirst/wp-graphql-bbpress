@@ -104,6 +104,27 @@ add_action('graphql_register_types', function () {
             $content = sanitize_text_field($input['content']);
             $user_id = get_current_user_id();
 
+            if (empty($forum_id)) {
+                return [
+                    'topicId' => null,
+                    'status' => 'error: forumId is required.',
+                ];
+            }
+            
+            if (empty($title)) {
+                return [
+                    'topicId' => null,
+                    'status' => 'error: title is required.',
+                ];
+            }
+            
+            if (empty($content)) {
+                return [
+                    'topicId' => null,
+                    'status' => 'error: content is required.',
+                ];
+            }
+
             $topic_data = [
                 'post_title'    => $title,
                 'post_content'  => $content,
