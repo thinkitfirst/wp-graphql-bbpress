@@ -53,8 +53,6 @@ function resolve_topic($id) {
 
     if ($query->have_posts()) {
         while ($query->have_posts()) {
-            $nested_replies = 
-
             $query->the_post();
             $reply_id = get_the_ID();
 
