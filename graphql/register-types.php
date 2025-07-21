@@ -107,6 +107,14 @@ add_action('graphql_register_types', function () {
                 'type' => 'ID',
                 'description' => 'The ID of the reply to which this topic is linked.',
             ],
+            'authorIp' => [
+                'type' => 'String',
+                'description' => 'The IP address of the author of the reply.',
+            ],
+            'burTotal' => [
+                'type' => 'String',
+                'description' => 'Total count of posts in the topic including replies.',
+            ]
         ],
     ]);
 
@@ -141,6 +149,14 @@ add_action('graphql_register_types', function () {
                 'type' => ['list_of' => 'Reply'],
                 'description' => 'The replies to the topic.',
             ],
+            'authorIp' => [
+                'type' => 'String',
+                'description' => 'The IP address of the author of the reply.',
+            ],
+            'burTotal' => [
+                'type' => 'String',
+                'description' => 'Total count of posts in the topic including replies.',
+            ]
         ],
     ]);
 });
