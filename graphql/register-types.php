@@ -164,6 +164,10 @@ add_action('graphql_register_types', function () {
             'burTotal' => [
                 'type' => 'String',
                 'description' => 'Total count of posts in the topic including replies.',
+            ],
+            'tags' => [
+                'type' => ['list_of' => 'TopicTag'],
+                'description' => 'The tags of the topic.',
             ]
         ],
     ]);
