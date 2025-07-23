@@ -86,6 +86,7 @@ function resolve_topic($id)
                 'authorRole' => bbp_get_reply_author_role($reply_id),
                 'replyToId' => bbp_get_reply_to($reply_id),
                 'authorIp' => bbp_get_author_ip($reply_id),
+                'authorId' => bbp_get_reply_author_id($reply_id),
                 'burTotal' => function () use ($reply_id) {
                     $bur_id = bbp_get_topic_author_id($reply_id);
                     $topics  = bbp_get_user_topic_count_raw($bur_id);
@@ -105,6 +106,7 @@ function resolve_topic($id)
         'content' => bbp_get_topic_content($id),
         'author' => bbp_get_topic_author_link($id),
         'authorRole' => bbp_get_topic_author_role($id),
+        'authorId' => bbp_get_topic_author_id($id),
         'createdAt' => bbp_get_reply_post_date($id),
         'replies' => $replies,
         'authorIp' => bbp_get_author_ip(array('post_id' => $id)),

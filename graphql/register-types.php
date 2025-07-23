@@ -103,6 +103,10 @@ add_action('graphql_register_types', function () {
                 'type' => 'String',
                 'description' => 'The role of the author of the reply.',
             ],
+            'authorId' => [
+                'type' => 'ID',
+                'description' => 'The ID of the author of the reply.',
+            ],
             'replyToId' => [
                 'type' => 'ID',
                 'description' => 'The ID of the reply to which this topic is linked.',
@@ -144,6 +148,10 @@ add_action('graphql_register_types', function () {
             'createdAt' => [
                 'type' => 'String',
                 'description' => 'The creation date of the topic.',
+            ],
+            'authorId' => [
+                'type' => 'ID',
+                'description' => 'The ID of the author of the topic.',
             ],
             'replies' => [
                 'type' => ['list_of' => 'Reply'],
