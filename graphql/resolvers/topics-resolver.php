@@ -117,6 +117,19 @@ function resolve_topic($id)
 
             $total_count = (int) $topics + $replies;
             return get_bur_total_count($total_count, $bur_id, 'yes');
-        }
+        },
+        'tags' => bbp_get_topic_tags($id),
     ];
 }
+
+function modify_topic_tag_taxonomy_graphql($args, $taxonomy) {
+    if ($taxonomy === bbp_get_topic_tag_tax_id()) {
+        $args['show_in_graphql'] = true;
+        $args['graphql_single_name'] = 'TopicTag';
+        $args['graphql_plural_name'] = 'TopicTags';
+    }
+
+    return $args;
+}
+
+add_filter('register_taxonomy_args', 'modify_topic_tag_taxonomy_graphql', 10, 2);
