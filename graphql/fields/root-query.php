@@ -11,7 +11,7 @@ add_action('graphql_register_types', function () {
                 'default' => null,
             ],
         ],
-        'resolve' => function($source, $args) {
+        'resolve' => function ($source, $args) {
             if ($args['forumId']) {
                 return resolve_forums($args['forumId']);
             }
@@ -29,7 +29,7 @@ add_action('graphql_register_types', function () {
                 'required' => true,
             ],
         ],
-        'resolve' => function($source, $args) {
+        'resolve' => function ($source, $args) {
             return resolve_topics($args['forumId']);
         },
     ]);
@@ -43,7 +43,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'The ID of the forum.',
             ],
         ],
-        'resolve' => function($source, $args) {
+        'resolve' => function ($source, $args) {
             return resolve_forum($args['id']);
         },
     ]);
@@ -58,7 +58,7 @@ add_action('graphql_register_types', function () {
                 'required' => true,
             ],
         ],
-        'resolve' => function($source, $args) {
+        'resolve' => function ($source, $args) {
             return resolve_topic($args['id']);
         },
     ]);
@@ -91,7 +91,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'Result status.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             if (!bbp_current_user_can_access_create_topic_form()) {
                 return [
                     'topicId' => null,
@@ -110,14 +110,14 @@ add_action('graphql_register_types', function () {
                     'status' => 'error: forumId is required.',
                 ];
             }
-            
+
             if (empty($title)) {
                 return [
                     'topicId' => null,
                     'status' => 'error: title is required.',
                 ];
             }
-            
+
             if (empty($content)) {
                 return [
                     'topicId' => null,
@@ -159,6 +159,14 @@ add_action('graphql_register_types', function () {
                 'type' => 'String',
                 'description' => 'The content of the reply.',
             ],
+            'tags' => [
+                'type' => ['list_of' => 'String'],
+                'description' => 'The tags of the reply.',
+            ],
+            'subscribe' => [
+                'type' => 'Boolean',
+                'description' => 'Notifies the user of follow-up replies via email.',
+            ]
         ],
         'outputFields' => [
             'replyId' => [
@@ -170,7 +178,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'Result status.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $topic_id = absint($input['topicId']);
             $content = sanitize_text_field($input['content']);
 
@@ -179,6 +187,7 @@ add_action('graphql_register_types', function () {
                 'post_content'  => $content,
                 'post_status'   => bbp_get_public_status_id(),
                 'post_author'   => get_current_user_id(),
+                'tags'          => $input['tags']
             ];
 
             $reply_id = bbp_insert_reply($reply_data, $topic_id);
@@ -188,6 +197,10 @@ add_action('graphql_register_types', function () {
                     'replyId' => null,
                     'status' => 'error: ' . $reply_id->get_error_message(),
                 ];
+            }
+
+            if (isset($input['subscribe']) && $input['subscribe']) {
+                bbp_add_user_subscription(get_current_user_id(), $topic_id);
             }
 
             return [
@@ -215,7 +228,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $topic_id = absint($input['topicId']);
             $user_id = get_current_user_id();
 
@@ -252,7 +265,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $topic_id = absint($input['topicId']);
             $user_id = get_current_user_id();
 
@@ -289,7 +302,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $topic_id = absint($input['topicId']);
             $user_id = get_current_user_id();
 
@@ -326,7 +339,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $topic_id = absint($input['topicId']);
             $user_id = get_current_user_id();
 
@@ -368,7 +381,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $reply_id = absint($input['replyId']);
             $content = sanitize_text_field($input['content']);
             $user_id = get_current_user_id();
@@ -426,7 +439,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $reply_id = absint($input['replyId']);
             $user_id = get_current_user_id();
 
@@ -480,7 +493,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $forum_id = absint($input['forumId']);
             $user_id = get_current_user_id();
 
@@ -517,7 +530,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $forum_id = absint($input['forumId']);
             $user_id = get_current_user_id();
 

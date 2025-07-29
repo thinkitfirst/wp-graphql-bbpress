@@ -20,11 +20,11 @@ add_action('graphql_register_types', function () {
                 'description' => 'The content of the forum.',
             ],
             'topicCount' => [
-                'type' => 'Int',
+                'type' => 'String',
                 'description' => 'The number of topics in the forum.',
             ],
             'postCount' => [
-                'type' => 'Int',
+                'type' => 'String',
                 'description' => 'The total number of posts in the forum.',
             ],
             'freshnessLink' => [
@@ -54,7 +54,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'The content of the topic.',
             ],
             'postCount' => [
-                'type' => 'Int',
+                'type' => 'String',
                 'description' => 'The total number of posts in the topic.',
             ],
             'author' => [
@@ -66,7 +66,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'The creation date of the topic.',
             ],
             'voicesCount' => [
-                'type' => 'Int',
+                'type' => 'String',
                 'description' => 'The number of unique voices in the topic.',
             ],
             'freshnessLink' => [
