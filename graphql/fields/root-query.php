@@ -152,11 +152,11 @@ add_action('graphql_register_types', function () {
     register_graphql_mutation('createBbpressReply', [
         'inputFields' => [
             'topicId' => [
-                'type' => 'ID',
+                'type' => ['non_null' => 'ID'],
                 'description' => 'The ID of the topic to reply to.',
             ],
             'content' => [
-                'type' => 'String',
+                'type' => ['non_null' => 'String'],
                 'description' => 'The content of the reply.',
             ],
         ],
@@ -172,7 +172,14 @@ add_action('graphql_register_types', function () {
         ],
         'mutateAndGetPayload' => function($input) {
             $topic_id = absint($input['topicId']);
-            $content = sanitize_text_field($input['content']);
+            $content = wp_strip_all_tags(apply_filters('bbp_new_reply_pre_content', $input['content']));
+
+            if(empty($content)) {
+                return [
+                    'replyId' => null,
+                    'status' => 'Content cannot be empty.',
+                ];
+            }
 
             $reply_data = [
                 'post_parent'   => $topic_id,
@@ -348,12 +355,12 @@ add_action('graphql_register_types', function () {
     register_graphql_mutation('updateBbpressReply', [
         'inputFields' => [
             'replyId' => [
-                'type' => 'ID',
+                'type' => ['non_null' => 'ID'],
                 'description' => 'The ID of the reply to update.',
                 'required' => true,
             ],
             'content' => [
-                'type' => 'String',
+                'type' => ['non_null' => 'String'],
                 'description' => 'The new content for the reply.',
                 'required' => true,
             ],
@@ -370,8 +377,15 @@ add_action('graphql_register_types', function () {
         ],
         'mutateAndGetPayload' => function($input) {
             $reply_id = absint($input['replyId']);
-            $content = sanitize_text_field($input['content']);
+            $content = wp_strip_all_tags(apply_filters('bbp_edit_reply_pre_content', $input['content'], $reply_id));
             $user_id = get_current_user_id();
+
+            if(empty($content)) {
+                return [
+                    'success' => false,
+                    'message' => 'Content cannot be empty.',
+                ];
+            }
 
             $reply = get_post($reply_id);
 

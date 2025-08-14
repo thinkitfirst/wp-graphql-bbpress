@@ -24,7 +24,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'The number of topics in the forum.',
             ],
             'postCount' => [
-                'type' => 'Int',
+                'type' => 'String',
                 'description' => 'The total number of posts in the forum.',
             ],
             'freshnessLink' => [
@@ -54,7 +54,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'The content of the topic.',
             ],
             'postCount' => [
-                'type' => 'Int',
+                'type' => 'String',
                 'description' => 'The total number of posts in the topic.',
             ],
             'author' => [
