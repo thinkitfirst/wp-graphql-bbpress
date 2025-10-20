@@ -35,6 +35,7 @@ function resolve_topics($forumId)
         while ($query->have_posts()) {
             $query->the_post();
             $topic_id = get_the_ID();
+            $subforumId = bbp_get_topic_forum_id($topic_id);
 
             $topics[] = [
                 'id' => $topic_id,
@@ -46,6 +47,9 @@ function resolve_topics($forumId)
                 'voicesCount' => bbp_get_topic_voice_count($topic_id, true),
                 'freshnessLink' => bbp_get_topic_freshness_link($topic_id),
                 'freshnessAuthor' => bbp_get_topic_author_display_name($topic_id),
+                'type' => get_post_type($topic_id),
+                'forumId' => bbp_get_forum_parent_id($subforumId),
+                'subforumId' => $subforumId,
             ];
         }
         wp_reset_postdata();

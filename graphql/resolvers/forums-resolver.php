@@ -1,11 +1,28 @@
 <?php
 
-function resolve_forums($forumId = null) {
+function resolve_forums($forumId = null)
+{
     $forums = [];
+
+    function bbp_get_children_forum_type($forum_id = 0)
+    {
+        $has_subforums = !empty(bbp_forum_get_subforums($forum_id));
+        $has_topics = bbp_get_forum_topic_count($forum_id, true) > 0;
+
+        if ($has_subforums) {
+            return "forum";
+        } elseif ($has_topics) {
+            return "topic";
+        } else {
+            return "none";
+        }
+    }
 
     if ($forumId) {
         $subforums = bbp_forum_get_subforums($forumId);
         foreach ($subforums as $subforum) {
+            $subforumId = bbp_get_forum_id($subforum->ID);
+
             $forums[] = [
                 'id' => bbp_get_forum_id($subforum->ID),
                 'title' => bbp_get_forum_title($subforum->ID),
@@ -17,6 +34,10 @@ function resolve_forums($forumId = null) {
                     'post_id' => bbp_get_forum_last_active_id($subforum->ID),
                     'size'    => 14,
                 ]),
+                'forumId' => bbp_get_forum_parent_id($subforumId),
+                'subforumId' => $subforumId,
+                'type' => get_post_type($subforum->ID),
+                'childrenType' => bbp_get_children_forum_type($subforum->ID),
             ];
         }
     } else {
@@ -34,6 +55,8 @@ function resolve_forums($forumId = null) {
                         'post_id' => bbp_get_forum_last_active_id(),
                         'size'    => 14,
                     ]),
+                    'type' => get_post_type(),
+                    'childrenType' => bbp_get_children_forum_type(),
                 ];
             }
         }
@@ -42,9 +65,10 @@ function resolve_forums($forumId = null) {
     return $forums;
 }
 
-function resolve_forum($id) {
+function resolve_forum($id)
+{
     $forum = bbp_get_forum($id);
-    
+
     if (!$forum) {
         return null;
     }
