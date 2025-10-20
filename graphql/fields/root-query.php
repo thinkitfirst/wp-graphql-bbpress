@@ -11,11 +11,14 @@ add_action('graphql_register_types', function () {
                 'default' => null,
             ],
         ],
-        'resolve' => function($source, $args) {
-            if ($args['forumId']) {
+        'resolve' => function ($source, $args) {
+            if (!empty(bbp_forum_get_subforums($args['forumId'])) && $args['forumId']) {
                 return resolve_forums($args['forumId']);
+            } else if (bbp_get_forum_topic_count($args['forumId'], true)) {
+                return resolve_topics($args['forumId']);
+            } else {
+                return resolve_forums();
             }
-            return resolve_forums();
         },
     ]);
 
@@ -29,7 +32,7 @@ add_action('graphql_register_types', function () {
                 'required' => true,
             ],
         ],
-        'resolve' => function($source, $args) {
+        'resolve' => function ($source, $args) {
             return resolve_topics($args['forumId']);
         },
     ]);
@@ -43,7 +46,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'The ID of the forum.',
             ],
         ],
-        'resolve' => function($source, $args) {
+        'resolve' => function ($source, $args) {
             return resolve_forum($args['id']);
         },
     ]);
@@ -58,11 +61,75 @@ add_action('graphql_register_types', function () {
                 'required' => true,
             ],
         ],
-        'resolve' => function($source, $args) {
+        'resolve' => function ($source, $args) {
             return resolve_topic($args['id']);
         },
     ]);
 
+    register_graphql_field('RootQuery', 'bbpressSearch', [
+        'type' => ['list_of' => 'BbPressSearchResult'],
+        'description' => 'Search bbPress forums, topics, and replies by a search term.',
+        'args' => [
+            'query' => [
+                'type' => 'String',
+                'description' => 'The search term to query bbPress content.',
+                'required' => true,
+            ],
+        ],
+        'resolve' => function ($source, $args) {
+            error_log('Post types: ' . print_r(bbp_get_post_types(), true));
+
+            // $default_post_types = bbp_get_post_types(); // We may handle replies later
+
+            $query_args = [
+                'post_type'                 => ['forum', 'topic'],
+                'posts_per_page'            => -1,
+                's'                         => $args['query'],
+                'orderby'                   => 'date',
+                'order'                     => 'DESC',
+                'ignore_sticky_posts'       => true,
+                'perm'                      => 'readable',
+                'update_post_family_cache'  => true,
+            ];
+
+            $bbp = bbpress();
+            $bbp->search_query = new WP_Query($query_args);
+
+            $results = [];
+
+            if ($bbp->search_query->have_posts()) {
+                while ($bbp->search_query->have_posts()) {
+                    $bbp->search_query->the_post();
+
+                    $id = get_the_ID();
+                    $subforumId = bbp_get_topic_forum_id($id);
+
+                    $results[] = [
+                        'id'                => bbp_get_forum_id($id),
+                        'title'             => bbp_get_forum_title($id),
+                        'content'           => bbp_get_forum_content($id),
+                        'type'              => get_post_type(),
+                        'topicCount'        => bbp_get_forum_topic_count($id),
+                        'postCount'         => bbp_get_forum_post_count($id),
+                        'freshnessLink'     => bbp_get_forum_freshness_link($id),
+                        'freshnessAuthor'   => bbp_get_author_link([
+                            'post_id'       => bbp_get_forum_last_active_id($id),
+                            'size'          => 14,
+                        ]),
+                        'voicesCount'       => bbp_get_topic_voice_count($id, true),
+                        'createdAt'         => get_the_date(),
+                        'forumId'           => bbp_get_forum_parent_id($subforumId),
+                        'subforumId'        => $subforumId,
+                    ];
+                }
+                wp_reset_postdata();
+            }
+
+            return $results;
+        },
+    ]);
+
+    // Mutations
     register_graphql_mutation('createBbpressTopic', [
         'inputFields' => [
             'forumId' => [
@@ -91,7 +158,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'Result status.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             if (!bbp_current_user_can_access_create_topic_form()) {
                 return [
                     'topicId' => null,
@@ -110,14 +177,14 @@ add_action('graphql_register_types', function () {
                     'status' => 'error: forumId is required.',
                 ];
             }
-            
+
             if (empty($title)) {
                 return [
                     'topicId' => null,
                     'status' => 'error: title is required.',
                 ];
             }
-            
+
             if (empty($content)) {
                 return [
                     'topicId' => null,
@@ -170,11 +237,11 @@ add_action('graphql_register_types', function () {
                 'description' => 'Result status.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $topic_id = absint($input['topicId']);
             $content = wp_strip_all_tags(apply_filters('bbp_new_reply_pre_content', $input['content']));
 
-            if(empty($content)) {
+            if (empty($content)) {
                 return [
                     'replyId' => null,
                     'status' => 'Content cannot be empty.',
@@ -222,7 +289,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $topic_id = absint($input['topicId']);
             $user_id = get_current_user_id();
 
@@ -259,7 +326,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $topic_id = absint($input['topicId']);
             $user_id = get_current_user_id();
 
@@ -296,7 +363,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $topic_id = absint($input['topicId']);
             $user_id = get_current_user_id();
 
@@ -333,7 +400,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $topic_id = absint($input['topicId']);
             $user_id = get_current_user_id();
 
@@ -375,12 +442,12 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $reply_id = absint($input['replyId']);
             $content = wp_strip_all_tags(apply_filters('bbp_edit_reply_pre_content', $input['content'], $reply_id));
             $user_id = get_current_user_id();
 
-            if(empty($content)) {
+            if (empty($content)) {
                 return [
                     'success' => false,
                     'message' => 'Content cannot be empty.',
@@ -440,7 +507,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $reply_id = absint($input['replyId']);
             $user_id = get_current_user_id();
 
@@ -494,7 +561,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $forum_id = absint($input['forumId']);
             $user_id = get_current_user_id();
 
@@ -531,7 +598,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function($input) {
+        'mutateAndGetPayload' => function ($input) {
             $forum_id = absint($input['forumId']);
             $user_id = get_current_user_id();
 

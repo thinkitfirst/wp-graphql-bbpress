@@ -35,6 +35,22 @@ add_action('graphql_register_types', function () {
                 'type' => 'String',
                 'description' => 'The freshness author of the forum.',
             ],
+            'forumId' => [
+                'type' => 'ID',
+                'description' => 'The ID of the forum (if applicable).',
+            ],
+            'subforumId' => [
+                'type' => 'ID',
+                'description' => 'The ID of the subforum (if applicable).',
+            ],
+            'type' => [
+                'type' => 'String',
+                'description' => 'The type of the forum.',
+            ],
+            'childrenType' => [
+                'type' => 'String',
+                'description' => 'The type of children forums.',
+            ],
         ],
     ]);
 
@@ -76,6 +92,18 @@ add_action('graphql_register_types', function () {
             'freshnessAuthor' => [
                 'type' => 'String',
                 'description' => 'The freshness author of the topic.',
+            ],
+            'forumId' => [
+                'type' => 'ID',
+                'description' => 'The ID of the forum (if applicable).',
+            ],
+            'subforumId' => [
+                'type' => 'ID',
+                'description' => 'The ID of the subforum (if applicable).',
+            ],
+            'type' => [
+                'type' => 'String',
+                'description' => 'The type of the forum.',
             ],
         ],
     ]);
@@ -169,6 +197,60 @@ add_action('graphql_register_types', function () {
                 'type' => ['list_of' => 'TopicTag'],
                 'description' => 'The tags of the topic.',
             ]
+        ],
+    ]);
+
+    register_graphql_object_type('BbPressSearchResult', [
+        'description' => 'A bbPress search result.',
+        'fields' => [
+            'id' => [
+                'type' => 'ID',
+                'description' => 'The ID of the post.',
+            ],
+            'title' => [
+                'type' => 'String',
+                'description' => 'The title of the post.',
+            ],
+            'content' => [
+                'type' => 'String',
+                'description' => 'The content of the post.',
+            ],
+            'topicCount' => [
+                'type' => 'Int',
+                'description' => 'The number of topics in the post.',
+            ],
+            'postCount' => [
+                'type' => 'String',
+                'description' => 'The total number of posts in the post.',
+            ],
+            'freshnessLink' => [
+                'type' => 'String',
+                'description' => 'The freshness link of the post.',
+            ],
+            'freshnessAuthor' => [
+                'type' => 'String',
+                'description' => 'The freshness author of the post.',
+            ],
+            'voicesCount' => [
+                'type' => 'Int',
+                'description' => 'The number of unique voices in the topic.',
+            ],
+            'createdAt' => [
+                'type' => 'String',
+                'description' => 'The creation date of the topic.',
+            ],
+            'type' => [
+                'type' => 'String',
+                'description' => 'The type of the post (forum, topic, reply).',
+            ],
+            'forumId' => [
+                'type' => 'ID',
+                'description' => 'The ID of the forum (if applicable).',
+            ],
+            'subforumId' => [
+                'type' => 'ID',
+                'description' => 'The ID of the subforum (if applicable).',
+            ],
         ],
     ]);
 });
