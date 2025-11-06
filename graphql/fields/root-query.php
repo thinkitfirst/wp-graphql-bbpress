@@ -15,7 +15,7 @@ add_action('graphql_register_types', function () {
             if (!empty(bbp_forum_get_subforums($args['forumId'])) && $args['forumId']) {
                 return resolve_forums($args['forumId']);
             } else if (bbp_get_forum_topic_count($args['forumId'], true)) {
-                return resolve_topics($args['forumId']);
+                return resolve_topics($args);
             } else {
                 return resolve_forums();
             }
@@ -23,17 +23,27 @@ add_action('graphql_register_types', function () {
     ]);
 
     register_graphql_field('RootQuery', 'bbpressTopics', [
-        'type' => ['list_of' => 'Topics'],
-        'description' => 'List of all topics in a bbPress forum by forumId.',
+        'type' => 'BbPressTopicsResults',
+        'description' => 'List of bbPress topics by forum ID with pagination.',
         'args' => [
             'forumId' => [
                 'type' => 'ID',
                 'description' => 'The ID of the forum for which topics are being fetched.',
                 'required' => true,
             ],
+            'offset' => [
+                'type' => 'Int',
+                'description' => 'Offset for pagination.',
+                'defaultValue' => 0,
+            ],
+            'limit' => [
+                'type' => 'Int',
+                'description' => 'Number of topics to return.',
+                'defaultValue' => 15,
+            ],
         ],
         'resolve' => function ($source, $args) {
-            return resolve_topics($args['forumId']);
+            return resolve_topics($args);
         },
     ]);
 
@@ -67,7 +77,7 @@ add_action('graphql_register_types', function () {
     ]);
 
     register_graphql_field('RootQuery', 'bbpressSearch', [
-        'type' => ['list_of' => 'BbPressSearchResult'],
+        'type' => 'BbPressSearchResults',
         'description' => 'Search bbPress forums, topics, and replies by a search term.',
         'args' => [
             'query' => [
@@ -75,21 +85,30 @@ add_action('graphql_register_types', function () {
                 'description' => 'The search term to query bbPress content.',
                 'required' => true,
             ],
+            'offset' => [
+                'type' => 'Int',
+                'description' => 'Offset for pagination.',
+                'defaultValue' => 0,
+            ],
+            'limit' => [
+                'type' => 'Int',
+                'description' => 'Number of results to return.',
+                'defaultValue' => 15,
+            ],
         ],
         'resolve' => function ($source, $args) {
-            error_log('Post types: ' . print_r(bbp_get_post_types(), true));
-
             // $default_post_types = bbp_get_post_types(); // We may handle replies later
 
             $query_args = [
                 'post_type'                 => ['forum', 'topic'],
-                'posts_per_page'            => -1,
+                'posts_per_page'            => $args['limit'],
                 's'                         => $args['query'],
                 'orderby'                   => 'date',
                 'order'                     => 'DESC',
                 'ignore_sticky_posts'       => true,
                 'perm'                      => 'readable',
                 'update_post_family_cache'  => true,
+                'offset'                    => $args['offset']
             ];
 
             $bbp = bbpress();
@@ -125,7 +144,10 @@ add_action('graphql_register_types', function () {
                 wp_reset_postdata();
             }
 
-            return $results;
+            return [
+                'results' => $results,
+                'hasMore' => $bbp->search_query->found_posts > ($args['offset'] + count($results)),
+            ];
         },
     ]);
 

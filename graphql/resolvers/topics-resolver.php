@@ -20,14 +20,15 @@ function get_bur_total_count($total_count, $bur_id, $profile)
     return null;
 }
 
-function resolve_topics($forumId)
+function resolve_topics($args)
 {
     $topics = [];
 
     $args = [
-        'post_parent' => $forumId,
-        'post_type'   => bbp_get_topic_post_type(),
-        'posts_per_page' => -1,
+        'post_parent'   => $args['forumId'],
+        'post_type'     => bbp_get_topic_post_type(),
+        'posts_per_page'=> $args['limit'],
+        'offset'        => $args['offset'],
     ];
     $query = new WP_Query($args);
 
@@ -55,7 +56,10 @@ function resolve_topics($forumId)
         wp_reset_postdata();
     }
 
-    return $topics;
+    return [
+        'topics' => $topics,
+        'hasMore' => $query->found_posts > ($args['offset'] + count($topics)),
+    ];
 }
 
 function resolve_topic($id)
