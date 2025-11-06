@@ -200,6 +200,20 @@ add_action('graphql_register_types', function () {
         ],
     ]);
 
+    register_graphql_object_type('BbPressTopicsResults', [
+        'description' => 'A bbPress forum.',
+        'fields' => [
+            'topics' => [
+                'type' => ['list_of' => 'Topics'],
+                'description' => 'List of all topics in a bbPress forum by forumId.',
+            ],
+            'hasMore' => [
+                'type' => 'Boolean',
+                'description' => 'Indicates if there are more topics to load beyond the current set.',
+            ],
+        ],
+    ]);
+
     register_graphql_object_type('BbPressSearchResult', [
         'description' => 'A bbPress search result.',
         'fields' => [
@@ -250,6 +264,20 @@ add_action('graphql_register_types', function () {
             'subforumId' => [
                 'type' => 'ID',
                 'description' => 'The ID of the subforum (if applicable).',
+            ],
+        ],
+    ]);
+
+    register_graphql_object_type('BbPressSearchResults', [
+        'description' => 'A bbPress forum.',
+        'fields' => [
+            'results' => [
+                'type' => ['list_of' => 'BbPressSearchResult'],
+                'description' => 'List of all bbPress search results.',
+            ],
+            'hasMore' => [
+                'type' => 'Boolean',
+                'description' => 'Indicates if there are more results to load beyond the current set.',
             ],
         ],
     ]);
