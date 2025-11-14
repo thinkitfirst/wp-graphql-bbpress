@@ -112,6 +112,7 @@ function resolve_topic($id)
         'id' => bbp_get_topic_id($id),
         'title' => bbp_get_topic_title($id),
         'content' => bbp_get_topic_content($id),
+        'rawContent' => get_post_field( 'post_content', $id ),
         'author' => bbp_get_topic_author_link($id),
         'authorRole' => bbp_get_topic_author_role($id),
         'authorId' => bbp_get_topic_author_id($id),
