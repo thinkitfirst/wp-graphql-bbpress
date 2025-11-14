@@ -261,7 +261,7 @@ add_action('graphql_register_types', function () {
         ],
         'mutateAndGetPayload' => function ($input) {
             $topic_id = absint($input['topicId']);
-            $content = wp_strip_all_tags(apply_filters('bbp_new_reply_pre_content', $input['content']));
+            $content = apply_filters('bbp_new_reply_pre_content', $input['content']);
 
             if (empty($content)) {
                 return [
@@ -466,7 +466,7 @@ add_action('graphql_register_types', function () {
         ],
         'mutateAndGetPayload' => function ($input) {
             $reply_id = absint($input['replyId']);
-            $content = wp_strip_all_tags(apply_filters('bbp_edit_reply_pre_content', $input['content'], $reply_id));
+            $content = apply_filters('bbp_edit_reply_pre_content', $input['content'], $reply_id);
             $user_id = get_current_user_id();
 
             if (empty($content)) {
@@ -635,6 +635,130 @@ add_action('graphql_register_types', function () {
             return [
                 'success' => false,
                 'message' => 'User is not subscribed to this forum.',
+            ];
+        },
+    ]);
+
+    register_graphql_mutation('deleteBbpressTopic', [
+        'inputFields' => [
+            'topicId' => [
+                'type' => 'ID',
+                'description' => 'The ID of the topic to delete.',
+                'required' => true,
+            ],
+        ],
+        'outputFields' => [
+            'success' => [
+                'type' => 'Boolean',
+                'description' => 'Whether the topic was successfully deleted.',
+            ],
+            'message' => [
+                'type' => 'String',
+                'description' => 'A status message.',
+            ],
+        ],
+        'mutateAndGetPayload' => function ($input) {
+            $topic_id = absint($input['topicId']);
+            $user_id = get_current_user_id();
+
+            $topic = get_post($topic_id);
+
+            if (!$topic || $topic->post_type !== bbp_get_topic_post_type()) {
+                return [
+                    'success' => false,
+                    'message' => 'Topic not found.',
+                ];
+            }
+
+            if ((int) $topic->post_author !== $user_id && !current_user_can('delete_others_topics')) {
+                return [
+                    'success' => false,
+                    'message' => 'You do not have permission to delete this topic.',
+                ];
+            }
+
+            $deleted = wp_delete_post($topic_id, true);
+
+            if (!$deleted) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to delete topic.',
+                ];
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Topic deleted successfully.',
+            ];
+        },
+    ]);
+
+    register_graphql_mutation('updateBbpressTopic', [
+        'inputFields' => [
+            'topicId' => [
+                'type' => ['non_null' => 'ID'],
+                'description' => 'The ID of the topic to update.',
+                'required' => true,
+            ],
+            'content' => [
+                'type' => ['non_null' => 'String'],
+                'description' => 'The new content for the topic.',
+                'required' => true,
+            ],
+        ],
+        'outputFields' => [
+            'success' => [
+                'type' => 'Boolean',
+                'description' => 'Whether the topic was successfully updated.',
+            ],
+            'message' => [
+                'type' => 'String',
+                'description' => 'A status message.',
+            ],
+        ],
+        'mutateAndGetPayload' => function ($input) {
+            $topic_id = absint($input['topicId']);
+            $content = apply_filters('bbp_edit_topic_pre_content', $input['content'], $topic_id);
+            $user_id = get_current_user_id();
+
+            if (empty($content)) {
+                return [
+                    'success' => false,
+                    'message' => 'Content cannot be empty.',
+                ];
+            }
+
+            $topic = get_post($topic_id);
+
+            if (!$topic || $topic->post_type !== bbp_get_topic_post_type()) {
+                return [
+                    'success' => false,
+                    'message' => 'Topic not found.',
+                ];
+            }
+
+            if ((int) $topic->post_author !== $user_id && !current_user_can('edit_others_topics')) {
+                return [
+                    'success' => false,
+                    'message' => 'You do not have permission to edit this topic.',
+                ];
+            }
+
+            $update = wp_update_post([
+                'ID'           => $topic_id,
+                'post_content' => $content,
+            ], true);
+
+            if (is_wp_error($update)) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to update topic: ' . $update->get_error_message(),
+                ];
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Topic updated successfully.',
             ];
         },
     ]);

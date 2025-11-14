@@ -165,6 +165,10 @@ add_action('graphql_register_types', function () {
                 'type' => 'String',
                 'description' => 'The content of the topic.',
             ],
+            'rawContent' => [
+                'type' => 'String',
+                'description' => 'The raw content of the topic.',
+            ],
             'author' => [
                 'type' => 'String',
                 'description' => 'The author of the topic.',
