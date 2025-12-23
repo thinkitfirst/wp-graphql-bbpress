@@ -42,6 +42,7 @@ function resolve_topics($args)
                 'id' => $topic_id,
                 'title' => bbp_get_topic_title($topic_id),
                 'content' => bbp_get_topic_content($topic_id),
+                'rawContent' => get_post_field( 'post_content', $topic_id ),
                 'postCount' => bbp_get_topic_post_count($topic_id),
                 'author' => bbp_get_topic_author_link($topic_id),
                 'createdAt' => get_the_date(),
