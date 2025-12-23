@@ -700,10 +700,19 @@ add_action('graphql_register_types', function () {
                 'description' => 'The ID of the topic to update.',
                 'required' => true,
             ],
+            'title' => [
+                'type' => ['non_null' => 'String'],
+                'description' => 'The new title for the topic.',
+                'required' => true,
+            ],
             'content' => [
                 'type' => ['non_null' => 'String'],
                 'description' => 'The new content for the topic.',
                 'required' => true,
+            ],
+            'tags' => [
+                'type' => 'String',
+                'description' => 'Comma-separated topic tags',
             ],
         ],
         'outputFields' => [
@@ -746,6 +755,7 @@ add_action('graphql_register_types', function () {
 
             $update = wp_update_post([
                 'ID'           => $topic_id,
+                'post_title'   => $input['title'],
                 'post_content' => $content,
             ], true);
 
@@ -754,6 +764,29 @@ add_action('graphql_register_types', function () {
                     'success' => false,
                     'message' => 'Failed to update topic: ' . $update->get_error_message(),
                 ];
+            }
+
+            if (
+                bbp_allow_topic_tags()
+                && !empty($input['tags'])
+            ) {
+                $raw_tags = explode(',', $input['tags']);
+
+                $tags = [];
+
+                foreach ($raw_tags as $tag) {
+                    $tag = sanitize_text_field(trim($tag));
+                    if ($tag !== '') {
+                        $tags[] = $tag;
+                    }
+                }
+
+                wp_set_object_terms(
+                    $topic_id,
+                    array_values(array_unique($tags)),
+                    bbp_get_topic_tag_tax_id(),
+                    false
+                );
             }
 
             return [
