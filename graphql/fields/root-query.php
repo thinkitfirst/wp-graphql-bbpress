@@ -795,4 +795,186 @@ add_action('graphql_register_types', function () {
             ];
         },
     ]);
+
+    $get_user_subscription_ids = function (int $user_id, string $post_type): array {
+        if (empty($user_id) || empty($post_type) || !bbp_is_subscriptions_active()) {
+            return [];
+        }
+
+        $engagements = function_exists('bbp_user_engagements_interface')
+            ? bbp_user_engagements_interface('_bbp_subscription', 'post')
+            : null;
+
+        if (is_object($engagements) && isset($engagements->type) && $engagements->type === 'user') {
+            $option_key = (function_exists('bbp_get_forum_post_type') && bbp_get_forum_post_type() === $post_type)
+                ? '_bbp_forum_subscriptions'
+                : '_bbp_subscriptions';
+
+            $raw = get_user_option($option_key, $user_id);
+            return array_filter(array_map('absint', wp_parse_id_list($raw)));
+        }
+
+        if (!function_exists('bbp_get_user_object_query')) {
+            return [];
+        }
+
+        $relationship_args = bbp_get_user_object_query(
+            $user_id,
+            'vg_graphql_subscription_ids',
+            '_bbp_subscription',
+            'post'
+        );
+
+        $query_args = wp_parse_args($relationship_args, [
+            'post_type' => $post_type,
+            'posts_per_page' => -1,
+            'nopaging' => true,
+            'fields' => 'ids',
+            'orderby' => 'ID',
+            'order' => 'ASC',
+            'no_found_rows' => true,
+            'suppress_filters' => true,
+            'update_post_meta_cache' => false,
+            'update_post_term_cache' => false,
+            'ignore_sticky_posts' => true,
+            'perm' => 'readable',
+        ]);
+
+        $query = new \WP_Query($query_args);
+        return array_map('absint', $query->posts);
+    };
+
+    register_graphql_field('RootQuery', 'bbPressIsSubscribed', [
+        'type' => 'Boolean',
+        'description' => 'Whether the current user is subscribed to the specified forum/topic.',
+        'args' => [
+            'objectId' => [
+                'type' => ['non_null' => 'Int'],
+                'description' => 'The forum/topic ID.',
+            ],
+        ],
+        'resolve' => function ($root, $args) {
+            $user_id = bbp_get_current_user_id();
+            $object_id = !empty($args['objectId']) ? absint($args['objectId']) : 0;
+
+            if (empty($user_id) || empty($object_id) || !bbp_is_subscriptions_active()) {
+                return false;
+            }
+
+            return bbp_is_user_subscribed($user_id, $object_id, 'post');
+        },
+    ]);
+
+    register_graphql_field('User', 'bbPressSubscribedTopicIds', [
+        'type' => ['list_of' => 'Int'],
+        'description' => 'Topic IDs the user is subscribed to.',
+        'resolve' => function ($user) use ($get_user_subscription_ids) {
+            if (!bbp_is_subscriptions_active()) {
+                return [];
+            }
+
+            $user_id = isset($user->userId) ? absint($user->userId) : 0;
+            if (empty($user_id)) {
+                return [];
+            }
+
+            return $get_user_subscription_ids($user_id, bbp_get_topic_post_type());
+        },
+    ]);
+
+    register_graphql_field('User', 'bbPressSubscribedForumIds', [
+        'type' => ['list_of' => 'Int'],
+        'description' => 'Forum IDs the user is subscribed to.',
+        'resolve' => function ($user) use ($get_user_subscription_ids) {
+            if (!bbp_is_subscriptions_active()) {
+                return [];
+            }
+
+            $user_id = isset($user->userId) ? absint($user->userId) : 0;
+            if (empty($user_id)) {
+                return [];
+            }
+
+            return $get_user_subscription_ids($user_id, bbp_get_forum_post_type());
+        },
+    ]);
+
+    register_graphql_mutation('updateBbPressSubscription', [
+        'inputFields' => [
+            'objectId' => [
+                'type' => ['non_null' => 'Int'],
+                'description' => 'The forum/topic ID to subscribe/unsubscribe.',
+            ],
+            'subscribe' => [
+                'type' => ['non_null' => 'Boolean'],
+                'description' => 'True to subscribe, false to unsubscribe.',
+            ],
+        ],
+        'outputFields' => [
+            'success' => [
+                'type' => 'Boolean',
+                'description' => 'True if the operation completed successfully.',
+            ],
+            'subscribed' => [
+                'type' => 'Boolean',
+                'description' => 'True if the current user is subscribed after the operation.',
+            ],
+            'objectId' => [
+                'type' => 'Int',
+                'description' => 'The forum/topic ID that was targeted.',
+            ],
+            'message' => [
+                'type' => 'String',
+                'description' => 'Optional message about the result.',
+            ],
+        ],
+        'mutateAndGetPayload' => function ($input) {
+            if (!bbp_is_subscriptions_active()) {
+                throw new \GraphQL\Error\UserError('bbPress subscriptions are not enabled.');
+            }
+
+            $user_id = bbp_get_current_user_id();
+            if (empty($user_id)) {
+                throw new \GraphQL\Error\UserError('You must be logged in.');
+            }
+
+            if (!current_user_can('edit_user', $user_id)) {
+                throw new \GraphQL\Error\UserError('You do not have permission to edit subscriptions for this user.');
+            }
+
+            $object_id = !empty($input['objectId']) ? absint($input['objectId']) : 0;
+            $subscribe = (bool) $input['subscribe'];
+
+            if (empty($object_id)) {
+                throw new \GraphQL\Error\UserError('A valid forum/topic ID is required.');
+            }
+
+            $post_type = get_post_type($object_id);
+            $allowed_types = array_filter([
+                function_exists('bbp_get_topic_post_type') ? bbp_get_topic_post_type() : null,
+                function_exists('bbp_get_forum_post_type') ? bbp_get_forum_post_type() : null,
+            ]);
+
+            if (empty($post_type) || !in_array($post_type, $allowed_types, true)) {
+                throw new \GraphQL\Error\UserError('The specified object is not a bbPress forum/topic.');
+            }
+
+            $is_subscribed = bbp_is_user_subscribed($user_id, $object_id, 'post');
+
+            if (true === $subscribe && !$is_subscribed) {
+                bbp_add_user_subscription($user_id, $object_id, 'post');
+            } elseif (false === $subscribe && $is_subscribed) {
+                bbp_remove_user_subscription($user_id, $object_id, 'post');
+            }
+
+            $subscribed_after = bbp_is_user_subscribed($user_id, $object_id, 'post');
+
+            return [
+                'success' => ($subscribed_after === $subscribe),
+                'subscribed' => $subscribed_after,
+                'objectId' => $object_id,
+                'message' => $subscribed_after ? 'Subscribed.' : 'Unsubscribed.',
+            ];
+        },
+    ]);
 });
