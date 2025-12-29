@@ -701,7 +701,7 @@ add_action('graphql_register_types', function () {
         'description' => 'Whether the current user is subscribed to the specified forum/topic.',
         'args' => [
             'objectId' => [
-                'type' => ['non_null' => 'Int'],
+                'type' => ['non_null' => 'ID'],
                 'description' => 'The forum/topic ID.',
             ],
         ],
@@ -754,7 +754,7 @@ add_action('graphql_register_types', function () {
     register_graphql_mutation('updateBbPressSubscription', [
         'inputFields' => [
             'objectId' => [
-                'type' => ['non_null' => 'Int'],
+                'type' => ['non_null' => 'ID'],
                 'description' => 'The forum/topic ID to subscribe/unsubscribe.',
             ],
             'subscribe' => [
@@ -772,7 +772,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'True if the current user is subscribed after the operation.',
             ],
             'objectId' => [
-                'type' => 'Int',
+                'type' => 'ID',
                 'description' => 'The forum/topic ID that was targeted.',
             ],
             'message' => [
