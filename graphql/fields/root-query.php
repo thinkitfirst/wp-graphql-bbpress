@@ -152,22 +152,52 @@ add_action('graphql_register_types', function () {
     ]);
 
     // Mutations
+    $handle_tags = function ($id, $tags, $is_reply = false) {
+        if (
+            bbp_allow_topic_tags()
+            && !empty($tags)
+        ) {
+            $raw_tags = explode(',', $tags);
+
+            $parsed_tags = [];
+
+            foreach ($raw_tags as $tag) {
+                $tag = sanitize_text_field(trim($tag));
+                if ($tag !== '') {
+                    $parsed_tags[] = $tag;
+                }
+            }
+
+            if($is_reply) {
+                $id = bbp_get_reply_topic_id($id);
+            }
+
+            wp_set_object_terms(
+                $id,
+                array_values(array_unique($parsed_tags)),
+                bbp_get_topic_tag_tax_id(),
+                false
+            );
+        }
+    };
+
     register_graphql_mutation('createBbpressTopic', [
         'inputFields' => [
             'forumId' => [
-                'type' => 'ID',
+                'type' => ['non_null' => 'ID'],
                 'description' => 'The ID of the forum to post the topic in.',
-                'required' => true,
             ],
             'title' => [
-                'type' => 'String',
+                'type' => ['non_null' => 'String'],
                 'description' => 'The title of the topic.',
-                'required' => true,
             ],
             'content' => [
-                'type' => 'String',
+                'type' => ['non_null' => 'String'],
                 'description' => 'The content of the topic.',
-                'required' => true,
+            ],
+            'tags' => [
+                'type' => 'String',
+                'description' => 'Comma-separated topic tags',
             ],
         ],
         'outputFields' => [
@@ -180,7 +210,7 @@ add_action('graphql_register_types', function () {
                 'description' => 'Result status.',
             ],
         ],
-        'mutateAndGetPayload' => function ($input) {
+        'mutateAndGetPayload' => function ($input) use ($handle_tags) {
             if (!bbp_current_user_can_access_create_topic_form()) {
                 return [
                     'topicId' => null,
@@ -192,27 +222,7 @@ add_action('graphql_register_types', function () {
             $title = sanitize_text_field($input['title']);
             $content = sanitize_text_field($input['content']);
             $user_id = get_current_user_id();
-
-            if (empty($forum_id)) {
-                return [
-                    'topicId' => null,
-                    'status' => 'error: forumId is required.',
-                ];
-            }
-
-            if (empty($title)) {
-                return [
-                    'topicId' => null,
-                    'status' => 'error: title is required.',
-                ];
-            }
-
-            if (empty($content)) {
-                return [
-                    'topicId' => null,
-                    'status' => 'error: content is required.',
-                ];
-            }
+            $tags = isset($input['tags']) ? sanitize_text_field($input['tags']) : '';
 
             $topic_data = [
                 'post_title'    => $title,
@@ -230,6 +240,8 @@ add_action('graphql_register_types', function () {
                     'status' => 'error: ' . $topic_id->get_error_message(),
                 ];
             }
+
+            $handle_tags($topic_id, $tags);
 
             return [
                 'topicId' => $topic_id,
@@ -379,6 +391,10 @@ add_action('graphql_register_types', function () {
                 'description' => 'The new content for the reply.',
                 'required' => true,
             ],
+            'tags' => [
+                'type' => 'String',
+                'description' => 'Comma-separated topic tags',
+            ],
         ],
         'outputFields' => [
             'success' => [
@@ -390,9 +406,10 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function ($input) {
+        'mutateAndGetPayload' => function ($input) use ($handle_tags) {
             $reply_id = absint($input['replyId']);
             $content = apply_filters('bbp_edit_reply_pre_content', $input['content'], $reply_id);
+            $tags = isset($input['tags']) ? sanitize_text_field($input['tags']) : '';
             $user_id = get_current_user_id();
 
             if (empty($content)) {
@@ -429,6 +446,8 @@ add_action('graphql_register_types', function () {
                     'message' => 'Failed to update reply: ' . $update->get_error_message(),
                 ];
             }
+
+            $handle_tags($reply_id, $tags, true);
 
             return [
                 'success' => true,
@@ -577,9 +596,10 @@ add_action('graphql_register_types', function () {
                 'description' => 'A status message.',
             ],
         ],
-        'mutateAndGetPayload' => function ($input) {
+        'mutateAndGetPayload' => function ($input) use ($handle_tags) {
             $topic_id = absint($input['topicId']);
             $content = apply_filters('bbp_edit_topic_pre_content', $input['content'], $topic_id);
+            $tags = isset($input['tags']) ? sanitize_text_field($input['tags']) : '';
             $user_id = get_current_user_id();
 
             if (empty($content)) {
@@ -618,28 +638,7 @@ add_action('graphql_register_types', function () {
                 ];
             }
 
-            if (
-                bbp_allow_topic_tags()
-                && !empty($input['tags'])
-            ) {
-                $raw_tags = explode(',', $input['tags']);
-
-                $tags = [];
-
-                foreach ($raw_tags as $tag) {
-                    $tag = sanitize_text_field(trim($tag));
-                    if ($tag !== '') {
-                        $tags[] = $tag;
-                    }
-                }
-
-                wp_set_object_terms(
-                    $topic_id,
-                    array_values(array_unique($tags)),
-                    bbp_get_topic_tag_tax_id(),
-                    false
-                );
-            }
+            $handle_tags($topic_id, $tags);
 
             return [
                 'success' => true,
