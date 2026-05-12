@@ -243,6 +243,9 @@ add_action('graphql_register_types', function () {
 
             $handle_tags($topic_id, $tags);
 
+            // Fire the standard BBPress hook so notification plugins receive the event — bbp_insert_topic() is a low-level DB helper that skips this.
+            do_action('bbp_new_topic', $topic_id, $forum_id, false, $user_id);
+
             return [
                 'topicId' => $topic_id,
                 'status' => 'success',
@@ -297,6 +300,11 @@ add_action('graphql_register_types', function () {
                     'status' => 'error: ' . $reply_id->get_error_message(),
                 ];
             }
+
+            // Fire the standard BBPress hook so notification plugins receive the event — bbp_insert_reply() is a low-level DB helper that skips this.
+            $reply_forum_id = bbp_get_topic_forum_id($topic_id);
+            $reply_author   = get_current_user_id();
+            do_action('bbp_new_reply', $reply_id, $topic_id, $reply_forum_id, false, $reply_author, false, 0);
 
             return [
                 'replyId' => $reply_id,
