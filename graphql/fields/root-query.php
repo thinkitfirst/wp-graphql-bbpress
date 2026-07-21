@@ -211,14 +211,15 @@ add_action('graphql_register_types', function () {
             ],
         ],
         'mutateAndGetPayload' => function ($input) use ($handle_tags) {
-            if (!bbp_current_user_can_access_create_topic_form()) {
+            $forum_id = absint($input['forumId']);
+
+            if (!bbp_current_user_can_publish_topics() || bbp_is_forum_closed($forum_id)) {
                 return [
                     'topicId' => null,
                     'status' => 'error: You do not have permission to create a topic.',
                 ];
             }
 
-            $forum_id = absint($input['forumId']);
             $title = sanitize_text_field($input['title']);
             $content = sanitize_text_field($input['content']);
             $user_id = get_current_user_id();
