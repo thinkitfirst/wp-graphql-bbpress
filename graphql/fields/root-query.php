@@ -277,6 +277,15 @@ add_action('graphql_register_types', function () {
         ],
         'mutateAndGetPayload' => function ($input) {
             $topic_id = absint($input['topicId']);
+            $forum_id = bbp_get_topic_forum_id($topic_id);
+
+            if (!bbp_current_user_can_publish_replies() || !bbp_is_topic_published($topic_id) || bbp_is_topic_closed($topic_id) || bbp_is_forum_closed($forum_id)) {
+                return [
+                    'replyId' => null,
+                    'status' => 'error: You do not have permission to reply to this topic.',
+                ];
+            }
+
             $content = apply_filters('bbp_new_reply_pre_content', $input['content']);
 
             if (empty($content)) {
