@@ -77,6 +77,10 @@ add_action('graphql_register_types', function () {
                 'type' => 'String',
                 'description' => 'The author of the topic.',
             ],
+            'authorId' => [
+                'type' => 'ID',
+                'description' => 'The ID of the author of the topic.',
+            ],
             'createdAt' => [
                 'type' => 'String',
                 'description' => 'The creation date of the topic.',
@@ -248,6 +252,10 @@ add_action('graphql_register_types', function () {
             'freshnessAuthor' => [
                 'type' => 'String',
                 'description' => 'The freshness author of the post.',
+            ],
+            'authorId' => [
+                'type' => 'ID',
+                'description' => 'The ID of the author of the topic (null for forums).',
             ],
             'voicesCount' => [
                 'type' => 'Int',
