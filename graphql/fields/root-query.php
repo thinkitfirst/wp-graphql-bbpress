@@ -798,8 +798,17 @@ add_action('graphql_register_types', function () {
             ],
         ],
         'mutateAndGetPayload' => function ($input) {
+            // Not an error: the app sends this alongside creating or editing a topic or reply, and
+            // an error here fails that whole request, hiding the post's own result (the app then
+            // spins forever). bbp-style-pack switches subscriptions off for some roles, e.g.
+            // Blocked (banned) users, so report "not done" and let the post mutation speak.
             if (!bbp_is_subscriptions_active()) {
-                throw new \GraphQL\Error\UserError('bbPress subscriptions are not enabled.');
+                return [
+                    'success' => false,
+                    'subscribed' => false,
+                    'objectId' => !empty($input['objectId']) ? absint($input['objectId']) : null,
+                    'message' => 'bbPress subscriptions are not enabled.',
+                ];
             }
 
             $user_id = bbp_get_current_user_id();
