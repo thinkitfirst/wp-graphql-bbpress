@@ -428,7 +428,6 @@ add_action('graphql_register_types', function () {
             $reply_id = absint($input['replyId']);
             $content = apply_filters('bbp_edit_reply_pre_content', $input['content'], $reply_id);
             $tags = isset($input['tags']) ? sanitize_text_field($input['tags']) : '';
-            $user_id = get_current_user_id();
 
             if (empty($content)) {
                 return [
@@ -446,7 +445,9 @@ add_action('graphql_register_types', function () {
                 ];
             }
 
-            if ((int) $reply->post_author !== $user_id && !current_user_can('edit_others_replies')) {
+            // bbPress's edit_reply covers authorship, moderators and edit_others_replies, and also
+            // refuses users with the Blocked forum role (banned from the community).
+            if (!current_user_can('edit_reply', $reply_id)) {
                 return [
                     'success' => false,
                     'message' => 'You do not have permission to edit this reply.',
@@ -618,7 +619,6 @@ add_action('graphql_register_types', function () {
             $topic_id = absint($input['topicId']);
             $content = apply_filters('bbp_edit_topic_pre_content', $input['content'], $topic_id);
             $tags = isset($input['tags']) ? sanitize_text_field($input['tags']) : '';
-            $user_id = get_current_user_id();
 
             if (empty($content)) {
                 return [
@@ -636,7 +636,9 @@ add_action('graphql_register_types', function () {
                 ];
             }
 
-            if ((int) $topic->post_author !== $user_id && !current_user_can('edit_others_topics')) {
+            // bbPress's edit_topic covers authorship, moderators and edit_others_topics, and also
+            // refuses users with the Blocked forum role (banned from the community).
+            if (!current_user_can('edit_topic', $topic_id)) {
                 return [
                     'success' => false,
                     'message' => 'You do not have permission to edit this topic.',
