@@ -136,6 +136,7 @@ add_action('graphql_register_types', function () {
                             'size'          => 14,
                         ]),
                         'voicesCount'       => bbp_get_topic_voice_count($id, true),
+                        'authorId'          => get_post_type() === bbp_get_topic_post_type() ? bbp_get_topic_author_id($id) : null,
                         'createdAt'         => get_the_date(),
                         'forumId'           => bbp_get_forum_parent_id($subforumId),
                         'subforumId'        => $subforumId,

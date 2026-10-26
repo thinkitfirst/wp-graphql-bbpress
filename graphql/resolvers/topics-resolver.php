@@ -45,6 +45,7 @@ function resolve_topics($args)
                 'rawContent' => get_post_field( 'post_content', $topic_id ),
                 'postCount' => bbp_get_topic_post_count($topic_id),
                 'author' => bbp_get_topic_author_link($topic_id),
+                'authorId' => bbp_get_topic_author_id($topic_id),
                 'createdAt' => get_the_date(),
                 'voicesCount' => bbp_get_topic_voice_count($topic_id, true),
                 'freshnessLink' => bbp_get_topic_freshness_link($topic_id),
@@ -55,6 +56,14 @@ function resolve_topics($args)
             ];
         }
         wp_reset_postdata();
+    }
+
+    // Tag the (edge-cached) list with its topic IDs and its forum, so a moderator removing or
+    // restoring a topic can purge it — Smart Cache won't on its own, topics aren't a GraphQL
+    // post type. The forum tag matters for restores: a list cached while the topic was
+    // removed doesn't contain the topic's ID.
+    if (function_exists('vmau_tag_posts')) {
+        vmau_tag_posts(array_merge(array_column($topics, 'id'), [(int) $args['post_parent']]));
     }
 
     return [
@@ -68,6 +77,12 @@ function resolve_topic($id)
     $topic = bbp_get_topic($id);
 
     if (!$topic) {
+        return null;
+    }
+
+    // Trashed, spammed or pending topics (e.g. removed by a moderator) must not stay readable
+    // by direct link or push notification. Closed topics are still public in bbPress.
+    if (!in_array(get_post_status($topic->ID), [bbp_get_public_status_id(), bbp_get_closed_status_id()], true)) {
         return null;
     }
 
